@@ -11,19 +11,28 @@ import redis from "redis";
 import session from "express-session";
 import connectRedis from "connect-redis";
 import { MyContext } from "./types";
+import cors from "cors";
 
 const main = async () => {
   const orm = await MikroORM.init(mikroConfig);
   await orm.getMigrator().up();
 
   const app = express();
-  app.set("trust proxy", true);
-  app.set("Access-Control-Allow-Origin", "https://studio.apollographql.com");
-  app.set("Access-Control-Allow-Credentials", true);
+  // app.set("trust proxy", true);
+  // app.set("Access-Control-Allow-Origin", "https://studio.apollographql.com");
+  // app.set("Access-Control-Allow-Credentials", true);
 
-  const RedisStore = connectRedis(session);
   // redis@v3
+  const RedisStore = connectRedis(session);
   const redisClient = redis.createClient();
+
+  app.use(
+    cors({
+      origin: "http://localhost:3000",
+      credentials: true,
+    })
+  );
+
   app.use(
     session({
       name: "qid",
@@ -35,10 +44,10 @@ const main = async () => {
       cookie: {
         maxAge: 1000 * 60 * 60 * 24 * 365 * 10, // 10 years
         httpOnly: true,
-        // sameSite: "lax", //csrf
-        sameSite: "none",
-        secure: true, // if true, studio works, postman doesn't; if false its the other way around
-        // secure: __prod__, //cookie only works in https
+        sameSite: "lax", //csrf
+        secure: __prod__, //allows cookie to only work in https
+        // sameSite: "none",
+        // secure: false, // if true, studio works, postman doesn't; if false its the other way around
       },
       secret: "asdfoiuabwef82p98h3p98h",
       resave: false,
@@ -58,7 +67,7 @@ const main = async () => {
 
   apolloServer.applyMiddleware({
     app,
-    cors: { credentials: true, origin: "https://studio.apollographql.com" },
+    cors: false, //{ credentials: true, origin: "https://studio.apollographql.com" },
   });
 
   app.listen(4000, () => {
