@@ -3,9 +3,7 @@ import React from 'react'
 import NextLink from "next/link"
 import { useLogoutMutation, useMeQuery } from '../generated/graphql';
 
-interface NavBarProps {
-
-}
+interface NavBarProps {}
 
 export const NavBar: React.FC<NavBarProps> = ({}) => {
     const [{fetching: logoutFetching},logout] = useLogoutMutation()
