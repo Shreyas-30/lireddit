@@ -1,27 +1,44 @@
-import { MikroORM } from "@mikro-orm/core";
 import { ApolloServer } from "apollo-server-express";
 import connectRedis from "connect-redis";
 import cors from "cors";
 import express from "express";
 import session from "express-session";
 import Redis from "ioredis";
+import "reflect-metadata";
 import { buildSchema } from "type-graphql";
+import { DataSource } from "typeorm";
 import { COOKIE_NAME, __prod__ } from "./constants";
-import mikroConfig from "./mikro-orm.config";
+import { Post } from "./entities/Post";
+import { User } from "./entities/User";
 import { HelloResolver } from "./resolvers/hello";
 import { PostResolver } from "./resolvers/post";
 import { UserResolver } from "./resolvers/user";
 import { MyContext } from "./types";
 
 const main = async () => {
-  const orm = await MikroORM.init(mikroConfig);
-  // to delete all users use - await orm.em.nativeDelete(User, {});
-  await orm.getMigrator().up();
+  const appDataSource = new DataSource({
+    type: "postgres",
+    database: "lireddit2",
+    username: "postgres",
+    password: "postgres",
+    logging: true,
+    synchronize: false,
+    entities: [Post, User],
+  });
+  await appDataSource
+    .initialize()
+    .then(() => {
+      console.log("Data Source has been initialized!");
+    })
+    .catch((err) => {
+      console.error("Error during Data Source initialization", err);
+    });
 
+  const em = appDataSource.manager;
   const app = express();
-  // app.set("trust proxy", true);
-  // app.set("Access-Control-Allow-Origin", "https://studio.apollographql.com");
-  // app.set("Access-Control-Allow-Credentials", true);
+  app.set("trust proxy", true);
+  app.set("Access-Control-Allow-Origin", "https://studio.apollographql.com");
+  app.set("Access-Control-Allow-Credentials", true);
 
   // redis@v3
   const RedisStore = connectRedis(session);
@@ -46,8 +63,8 @@ const main = async () => {
         httpOnly: true,
         sameSite: "lax", //csrf
         secure: __prod__, //allows cookie to only work in https
-        // sameSite: "none",
-        // secure: false, // if true, studio works, postman doesn't; if false its the other way around
+        //sameSite: "none",
+        //secure: false, // if true, studio works, postman doesn't; if false its the other way around
       },
       secret: "asdfoiuabwef82p98h3p98h",
       resave: false,
@@ -60,7 +77,12 @@ const main = async () => {
       resolvers: [HelloResolver, PostResolver, UserResolver],
       validate: false,
     }),
-    context: ({ req, res }: MyContext) => ({ em: orm.em, req, res, redis }),
+    context: ({ req, res }: MyContext) => ({
+      req,
+      res,
+      redis,
+      em,
+    }),
   });
 
   await apolloServer.start();

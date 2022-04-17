@@ -1,45 +1,73 @@
+import { isAuth } from "../middleware/isAuth";
 import { MyContext } from "../types";
-import { Arg, Ctx, Int, Mutation, Query, Resolver } from "type-graphql";
+import {
+  Resolver,
+  Query,
+  Arg,
+  Mutation,
+  Ctx,
+  InputType,
+  Field,
+  UseMiddleware,
+} from "type-graphql";
 import { Post } from "../entities/Post";
+
+@InputType()
+class PostInput {
+  @Field()
+  title: string;
+  @Field()
+  text: string;
+}
 
 @Resolver()
 export class PostResolver {
   @Query(() => [Post])
-  async posts(@Ctx() { em }: MyContext): Promise<Post[]> {
-    return em.find(Post, {});
+  async posts(): Promise<Post[]> {
+    return Post.find();
   }
 
   @Query(() => Post, { nullable: true })
-  post(
-    @Arg("id", () => Int) id: number,
+  async post(
+    @Arg("id") id: number,
     @Ctx() { em }: MyContext
   ): Promise<Post | null> {
-    return em.findOne(Post, { id });
+    return await em.findOneBy(Post, { id });
   }
 
   @Mutation(() => Post)
+  @UseMiddleware(isAuth)
   async createPost(
-    @Arg("title") title: string,
-    @Ctx() { em }: MyContext
+    @Arg("input") input: PostInput,
+    @Ctx() { req, em }: MyContext
   ): Promise<Post> {
-    const post = em.create(Post, { title });
-    await em.persistAndFlush(post);
-    return post;
+    // const result = await em
+    //   .createQueryBuilder()
+    //   .insert()
+    //   .into(Post)
+    //   .values({
+    //     title: title,
+    //   })
+    //   .returning("*")
+    //   .execute();
+
+    // return result.raw[0];
+
+    return em.create(Post, { ...input, creatorId: req.session.userId });
   }
 
   @Mutation(() => Post, { nullable: true })
   async updatePost(
     @Arg("id") id: number,
-    @Arg("title", { nullable: true }) title: string,
+    @Arg("title", () => String, { nullable: true }) title: string,
     @Ctx() { em }: MyContext
   ): Promise<Post | null> {
-    const post = await em.findOne(Post, { id });
+    const post = await em.findOne(Post, { where: { id } });
     if (!post) {
       return null;
     }
     if (typeof title !== "undefined") {
-      post.title = title;
-      em.persistAndFlush(post);
+      await em.update(Post, { id }, { title });
     }
     return post;
   }
@@ -49,7 +77,7 @@ export class PostResolver {
     @Arg("id") id: number,
     @Ctx() { em }: MyContext
   ): Promise<boolean> {
-    await em.nativeDelete(Post, { id });
+    await em.delete(Post, id);
     return true;
   }
 }
