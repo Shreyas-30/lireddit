@@ -41,19 +41,19 @@ export class PostResolver {
     @Arg("input") input: PostInput,
     @Ctx() { req, em }: MyContext
   ): Promise<Post> {
-    // const result = await em
-    //   .createQueryBuilder()
-    //   .insert()
-    //   .into(Post)
-    //   .values({
-    //     title: title,
-    //   })
-    //   .returning("*")
-    //   .execute();
+    const result = await em
+      .createQueryBuilder()
+      .insert()
+      .into(Post)
+      .values({
+        ...input,
+        creatorId: req.session.userId,
+      })
+      .returning("*")
+      .execute();
 
-    // return result.raw[0];
-
-    return em.create(Post, { ...input, creatorId: req.session.userId });
+    return result.raw[0];
+    // return em.create(Post, { ...input, creatorId: req.session.userId }).save();
   }
 
   @Mutation(() => Post, { nullable: true })

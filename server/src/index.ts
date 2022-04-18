@@ -22,7 +22,7 @@ const main = async () => {
     username: "postgres",
     password: "postgres",
     logging: true,
-    synchronize: false,
+    synchronize: true,
     entities: [Post, User],
   });
   await appDataSource
@@ -43,6 +43,7 @@ const main = async () => {
   // redis@v3
   const RedisStore = connectRedis(session);
   const redis = new Redis();
+
   app.use(
     cors({
       origin: "http://localhost:3000",
@@ -64,7 +65,7 @@ const main = async () => {
         sameSite: "lax", //csrf
         secure: __prod__, //allows cookie to only work in https
         //sameSite: "none",
-        //secure: false, // if true, studio works, postman doesn't; if false its the other way around
+        //secure: true, // if true, studio works, postman doesn't; if false its the other way around
       },
       secret: "asdfoiuabwef82p98h3p98h",
       resave: false,
