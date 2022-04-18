@@ -64,8 +64,8 @@ const main = async () => {
         httpOnly: true,
         sameSite: "lax", //csrf
         secure: __prod__, //allows cookie to only work in https
-        //sameSite: "none",
-        //secure: true, // if true, studio works, postman doesn't; if false its the other way around
+        // sameSite: "none",
+        // secure: true, // if true, studio works, postman doesn't; if false its the other way around
       },
       secret: "asdfoiuabwef82p98h3p98h",
       resave: false,

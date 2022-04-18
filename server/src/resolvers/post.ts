@@ -9,6 +9,7 @@ import {
   InputType,
   Field,
   UseMiddleware,
+  Int,
 } from "type-graphql";
 import { Post } from "../entities/Post";
 
@@ -23,8 +24,23 @@ class PostInput {
 @Resolver()
 export class PostResolver {
   @Query(() => [Post])
-  async posts(): Promise<Post[]> {
-    return Post.find();
+  async posts(
+    @Arg("limit", () => Int) limit: number,
+    @Arg("cursor", () => String, { nullable: true }) cursor: string | null,
+    @Ctx() { em }: MyContext
+  ): Promise<Post[]> {
+    const realLimit = Math.min(50, limit);
+    const qb = em
+      .createQueryBuilder(Post, "p")
+      .orderBy('"createdAt"', "DESC")
+      .take(realLimit);
+
+    if (cursor) {
+      qb.where('"createdAt" < :cursor', { cursor: new Date(parseInt(cursor)) });
+    }
+
+    return qb.getMany();
+    // return Post.find();
   }
 
   @Query(() => Post, { nullable: true })
