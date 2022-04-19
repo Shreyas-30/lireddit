@@ -4,6 +4,7 @@ import cors from "cors";
 import express from "express";
 import session from "express-session";
 import Redis from "ioredis";
+import path from "path";
 import "reflect-metadata";
 import { buildSchema } from "type-graphql";
 import { DataSource } from "typeorm";
@@ -15,6 +16,7 @@ import { PostResolver } from "./resolvers/post";
 import { UserResolver } from "./resolvers/user";
 import { MyContext } from "./types";
 
+//rerun
 const main = async () => {
   const appDataSource = new DataSource({
     type: "postgres",
@@ -23,6 +25,7 @@ const main = async () => {
     password: "postgres",
     logging: true,
     synchronize: true,
+    migrations: [path.join(__dirname, "./migrations/*")],
     entities: [Post, User],
   });
   await appDataSource
@@ -33,7 +36,7 @@ const main = async () => {
     .catch((err) => {
       console.error("Error during Data Source initialization", err);
     });
-
+  await appDataSource.runMigrations();
   const em = appDataSource.manager;
   const app = express();
   app.set("trust proxy", true);
