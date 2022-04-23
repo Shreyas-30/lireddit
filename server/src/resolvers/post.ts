@@ -16,6 +16,7 @@ import {
 } from "type-graphql";
 import { Post } from "../entities/Post";
 import { Updoot } from "../entities/Updoot";
+import { User } from "../entities/User";
 
 @InputType()
 class PostInput {
@@ -35,9 +36,31 @@ class PaginatedPosts {
 
 @Resolver(Post)
 export class PostResolver {
+  @FieldResolver(() => User)
+  creator(@Root() post: Post, @Ctx() { userLoader }: MyContext) {
+    return userLoader.load(post.creatorId);
+    // return User.findOne({ where: { id: post.creatorId } });
+  }
+
+  @FieldResolver(() => Int, { nullable: true })
+  async voteStatus(
+    @Root() post: Post,
+    @Ctx() { updootLoader, req }: MyContext
+  ) {
+    if (!req.session.userId) {
+      return null;
+    }
+    const updoot = await updootLoader.load({
+      postId: post.id,
+      userId: req.session.userId,
+    });
+
+    return updoot ? updoot.value : null;
+  }
+
   @FieldResolver(() => String)
-  textSnippet(@Root() root: Post) {
-    return root.text.slice(0, 50);
+  textSnippet(@Root() post: Post) {
+    return post.text.slice(0, 50);
   }
 
   @Mutation(() => Boolean)
@@ -51,7 +74,7 @@ export class PostResolver {
     const realValue = isUpdoot ? 1 : -1;
     const { userId } = req.session;
     const updoot = await Updoot.findOne({ where: { postId, userId } });
-    console.log("realValue: ", realValue);
+
     // the user has voted on the post before
     // and they are changing their vote
     if (updoot && updoot.value !== realValue) {
@@ -108,40 +131,22 @@ export class PostResolver {
   async posts(
     @Arg("limit", () => Int) limit: number,
     @Arg("cursor", () => String, { nullable: true }) cursor: string | null,
-    @Ctx() { em, req }: MyContext
+    @Ctx() { em }: MyContext
   ): Promise<PaginatedPosts> {
     //20->21
     const realLimit = Math.min(50, limit);
     const realLimitPlusOne = realLimit + 1;
 
     const replacements: any[] = [realLimitPlusOne];
-    if (req.session.userId !== undefined) {
-      replacements.push(req.session.userId);
-    }
-    let cursorIdx = 3;
+
     if (cursor) {
       replacements.push(new Date(parseInt(cursor)));
-      cursorIdx = replacements.length;
     }
     const posts = await em.query(
       `
-      select p.*, 
-      json_build_object(
-        'id', u.id,
-        'username', u.username,
-        'email', u.email,
-        'createdAt', u."createdAt",
-        'updatedAt', u."updatedAt"
-        ) creator,
-      ${
-        req.session.userId
-          ? '(select value from updoot where "userId" = $2 and "postId" = p.id) "voteStatus"'
-          : 'null as "voteStatus"'
-      }
-
+      select p.*
       from post p
-      inner join public.user u on u.id = p."creatorId"
-      ${cursor ? `where p."createdAt" < $${cursorIdx}` : ""}
+      ${cursor ? `where p."createdAt" < $2` : ""}
       order by "createdAt" DESC
       limit $1
     `,
@@ -171,7 +176,7 @@ export class PostResolver {
     @Arg("id", () => Int) id: number,
     @Ctx() { em }: MyContext
   ): Promise<Post | null> {
-    return await em.findOne(Post, { where: { id }, relations: ["creator"] });
+    return await em.findOne(Post, { where: { id } });
   }
 
   @Mutation(() => Post)
@@ -234,6 +239,7 @@ export class PostResolver {
     // await Updoot.delete({ postId: id });
     // await Post.delete({ id });
 
+    //using cascade by set casacde true in entity file
     await em.delete(Post, { id, creatorId: req.session.userId });
     return true;
   }
