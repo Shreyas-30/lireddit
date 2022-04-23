@@ -1,11 +1,11 @@
-import { ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons'
+import { ChevronDownIcon, ChevronUpIcon, DeleteIcon } from '@chakra-ui/icons'
 import { Box, Button, Flex, Heading, Icon, IconButton, Link, Stack, Text } from '@chakra-ui/react'
 import { withUrqlClient } from 'next-urql'
 import NextLink from 'next/link'
 import { useState } from 'react'
 import { Layout } from '../components/Layout'
 import { UpdootSection } from '../components/UpdootSection'
-import { usePostsQuery } from '../generated/graphql'
+import { useDeletePostMutation, usePostsQuery } from '../generated/graphql'
 import { createUrqlClient } from '../utils/createUrqlClient'
 const Index = () => {
   const [variables, setVariables] = useState({
@@ -16,6 +16,7 @@ const Index = () => {
   const [{ data, fetching }] = usePostsQuery({
     variables,
   });
+  const [, deletePost] = useDeletePostMutation()
   if(!fetching && !data) {
     return <div>query failed for some reason</div>
   }
@@ -25,13 +26,26 @@ const Index = () => {
       <div>loading...</div>
       ) : (
       <Stack spacing={8}>
-        {data!.posts.posts.map((p) => (
+        {data!.posts.posts.map((p) => 
+          !p ? null : (
           <Flex key={p.id} p={5} shadow="md" borderWidth="1px">
             <UpdootSection post={p}/>
-            <Box>
+            <Box flex={1}>
             <NextLink href="post/[id]" as={`post/${p.id}`}><Heading fontSize="xl"><Link>{p.title}</Link></Heading></NextLink>
-            <Text>{p.creator.username}</Text>
-            <Text mt={4}>{p.textSnippet}</Text>
+            <Text>posted by {p.creator.username}</Text>
+            <Flex align="center">
+              <Text flex={1} mt={4}>{p.textSnippet}</Text>
+              <IconButton 
+                ml="auto" 
+                icon={<DeleteIcon />} 
+                colorScheme="red" 
+                aria-label='Delete Post' 
+                onClick={async () => {
+                  await deletePost({id: p.id})
+                  // window.alert("Deleted post " + p.id);
+                }
+              } />
+            </Flex>
             </Box>
           </Flex>)
           )}

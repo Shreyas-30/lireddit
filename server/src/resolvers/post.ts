@@ -212,11 +212,23 @@ export class PostResolver {
   }
 
   @Mutation(() => Boolean)
+  @UseMiddleware(isAuth)
   async deletePost(
-    @Arg("id") id: number,
-    @Ctx() { em }: MyContext
+    @Arg("id", () => Int) id: number,
+    @Ctx() { em, req }: MyContext
   ): Promise<boolean> {
-    await em.delete(Post, id);
+    // not using cascade
+    // const post = await Post.findOne({ where: { id } });
+    // if (!post) {
+    //   return false;
+    // }
+    // if (post.creatorId !== req.session.userId) {
+    //   throw new Error("not authorized");
+    // }
+    // await Updoot.delete({ postId: id });
+    // await Post.delete({ id });
+
+    await em.delete(Post, { id, creatorId: req.session.userId });
     return true;
   }
 }
