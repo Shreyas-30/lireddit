@@ -35,7 +35,7 @@ export const UpdootSection: React.FC<UpdootSectionProps> = ({post}) => {
                 setLoadingState("downdoot-loading");
                 await vote({
                   postId: post.id,
-                  value: 1,
+                  value: -1,
                 });
                 setLoadingState("not-loading");
               }}
