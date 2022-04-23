@@ -16,7 +16,6 @@ import { PostResolver } from "./resolvers/post";
 import { UserResolver } from "./resolvers/user";
 import { MyContext } from "./types";
 
-//rerun
 const main = async () => {
   const appDataSource = new DataSource({
     type: "postgres",
@@ -36,8 +35,10 @@ const main = async () => {
     .catch((err) => {
       console.error("Error during Data Source initialization", err);
     });
+
   await appDataSource.runMigrations();
   const em = appDataSource.manager;
+  // em.delete(Post, {});
   const app = express();
   app.set("trust proxy", true);
   app.set("Access-Control-Allow-Origin", "https://studio.apollographql.com");
