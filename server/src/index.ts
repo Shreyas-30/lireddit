@@ -25,7 +25,7 @@ const main = async () => {
     type: "postgres",
     url: process.env.DATABASE_URL,
     logging: true,
-    synchronize: true,
+    // synchronize: true,
     migrations: [path.join(__dirname, "./migrations/*")],
     entities: [Post, User, Updoot],
   });
@@ -42,14 +42,15 @@ const main = async () => {
   const em = appDataSource.manager;
   // em.delete(Post, {});
   const app = express();
-  app.set("trust proxy", true);
-  app.set("Access-Control-Allow-Origin", "https://studio.apollographql.com");
-  app.set("Access-Control-Allow-Credentials", true);
+
+  // app.set("trust proxy", true);
+  // app.set("Access-Control-Allow-Origin", "https://studio.apollographql.com");
+  // app.set("Access-Control-Allow-Credentials", true);
 
   // redis@v3
   const RedisStore = connectRedis(session);
   const redis = new Redis(process.env.REDIS);
-
+  app.set("proxy", 1);
   app.use(
     cors({
       origin: process.env.CORS_ORIGIN,
