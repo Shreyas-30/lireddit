@@ -1,6 +1,7 @@
 import { ApolloServer } from "apollo-server-express";
 import connectRedis from "connect-redis";
 import cors from "cors";
+import "dotenv-safe/config";
 import express from "express";
 import session from "express-session";
 import Redis from "ioredis";
@@ -22,9 +23,7 @@ import { createUserLoader } from "./utils/createUserLoader";
 const main = async () => {
   const appDataSource = new DataSource({
     type: "postgres",
-    database: "lireddit2",
-    username: "postgres",
-    password: "postgres",
+    url: process.env.DATABASE_URL,
     logging: true,
     synchronize: true,
     migrations: [path.join(__dirname, "./migrations/*")],
@@ -49,11 +48,11 @@ const main = async () => {
 
   // redis@v3
   const RedisStore = connectRedis(session);
-  const redis = new Redis();
+  const redis = new Redis(process.env.REDIS);
 
   app.use(
     cors({
-      origin: "http://localhost:3000",
+      origin: process.env.CORS_ORIGIN,
       credentials: true,
     })
   );
@@ -74,7 +73,7 @@ const main = async () => {
         // sameSite: "none",
         // secure: true, // if true, studio works, postman doesn't; if false its the other way around
       },
-      secret: "asdfoiuabwef82p98h3p98h",
+      secret: process.env.SESSION_SECRET,
       resave: false,
     })
   );
@@ -102,7 +101,7 @@ const main = async () => {
     cors: false, //{ credentials: true, origin: "https://studio.apollographql.com" },
   });
 
-  app.listen(4000, () => {
+  app.listen(parseInt(process.env.PORT), () => {
     console.log("server started on localhost:4000");
   });
 };
