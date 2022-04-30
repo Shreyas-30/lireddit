@@ -1,4 +1,4 @@
-FROM node:16
+FROM node:17
 
 # Create app directory
 WORKDIR /usr/src/app
@@ -20,4 +20,3 @@ ENV NODE_ENV production
 
 EXPOSE 8080
 CMD [ "node", "dist/index.js" ]
-USER node
